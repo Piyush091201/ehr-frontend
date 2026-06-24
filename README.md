@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EHR System — Frontend (Next.js + Tailwind)
 
-## Getting Started
+The web client for a Healthcare **Electronic Health Record (EHR)** system, built with **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**. It talks to a separate **.NET 8 Web API** using JWT authentication.
 
-First, run the development server:
+> 🔗 **Backend repo:** _add your backend GitHub URL here_
+
+---
+
+## ✨ Features
+
+- 🔐 **JWT login** with three demo roles (Admin / Doctor / Receptionist)
+- 📊 **Dashboard** with live stats and upcoming appointments
+- 👥 **Patients** — searchable list, create/edit, patient detail page
+- 📋 **Medical records** — per-patient clinical history (Doctor/Admin can add)
+- 📅 **Appointments** — schedule, update status, cancel
+- 🎨 Clean, responsive UI with role-aware actions
+- Protected routes (client-side guard) that redirect unauthenticated users to `/login`
+
+---
+
+## 🧱 Tech Stack
+
+| Concern   | Choice                          |
+| --------- | ------------------------------- |
+| Framework | Next.js (App Router)            |
+| Language  | TypeScript                      |
+| Styling   | Tailwind CSS                    |
+| Auth      | JWT stored in `localStorage` + React Context |
+| Data      | `fetch` wrapper (`lib/api.ts`)  |
+
+---
+
+## 🚀 Running Locally
+
+### Prerequisites
+- [Node.js 20.9+](https://nodejs.org)
+- The [backend API](#) running locally (default `http://localhost:5080`)
+
+### Steps
 
 ```bash
+cd frontend
+npm install
+cp .env.example .env.local   # then edit if your API runs elsewhere
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open **http://localhost:3000** and sign in with a demo account:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Role         | Email               | Password        |
+| ------------ | ------------------- | --------------- |
+| Admin        | `admin@ehr.com`     | `Admin@123`     |
+| Doctor       | `doctor@ehr.com`    | `Doctor@123`    |
+| Receptionist | `reception@ehr.com` | `Reception@123` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+> The login page also has one-click buttons that fill these credentials for you.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## ⚙️ Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable              | Description                          | Example                          |
+| --------------------- | ------------------------------------ | -------------------------------- |
+| `NEXT_PUBLIC_API_URL` | Base URL of the .NET EHR API         | `http://localhost:5080`          |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+In production, set this to your deployed backend URL (e.g. `https://ehr-api.onrender.com`).
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ☁️ Deploying to Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Push this repo to GitHub.
+2. Go to [vercel.com](https://vercel.com) → **Add New… → Project** → import the repo.
+   Vercel auto-detects Next.js — no build settings needed.
+3. Under **Environment Variables**, add:
+   - `NEXT_PUBLIC_API_URL` = `https://<your-backend>.onrender.com`
+4. Click **Deploy**.
+5. Copy your Vercel URL (e.g. `https://ehr-system.vercel.app`) and add it to the backend's
+   `Cors__AllowedOrigins__0` setting, then redeploy the backend so the browser is allowed to call it.
+
+> ⚠️ Because `NEXT_PUBLIC_API_URL` is baked in at build time, **redeploy** the frontend after changing it.
+
+---
+
+## 📁 Project Structure
+
+```
+frontend/
+├── app/
+│   ├── login/page.tsx        # Login screen
+│   ├── (app)/                # Authenticated route group
+│   │   ├── layout.tsx        # Sidebar + topbar + auth guard
+│   │   ├── dashboard/        # Stats overview
+│   │   ├── patients/         # List, create/edit, [id] detail
+│   │   └── appointments/     # Schedule & manage
+│   └── layout.tsx            # Root layout + AuthProvider
+├── components/               # Sidebar, Topbar, Modal, UI helpers
+└── lib/                      # api.ts (fetch + JWT), auth.tsx (context), types.ts
+```
+
+---
+
+## 🧭 Notes
+
+- Auth state is held in React Context and persisted to `localStorage`. A 401 from the API
+  automatically clears the token and bounces the user back to `/login`.
+- This is a portfolio demo — the JWT lives in `localStorage` for simplicity. For a production
+  app you'd typically use httpOnly cookies.
