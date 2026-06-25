@@ -54,11 +54,17 @@ async function buildError(res: Response): Promise<ApiError> {
     const data = await res.json();
     // ASP.NET Core ValidationProblemDetails: { title, errors: { Field: [msg] } }
     if (data.errors && typeof data.errors === "object") {
+      const allMessages: string[] = [];
       for (const [key, val] of Object.entries(data.errors)) {
-        fieldErrors[key.charAt(0).toLowerCase() + key.slice(1)] = val as string[];
+        const msgs = val as string[];
+        allMessages.push(...msgs);
+        // Skip JSON-binding error keys (e.g. "$.status", "dto", "request") — they
+        // map to no form field, so surface them as a banner instead of hiding them.
+        if (!key.startsWith("$") && key !== "dto" && key !== "request") {
+          fieldErrors[key.charAt(0).toLowerCase() + key.slice(1)] = msgs;
+        }
       }
-      const first = Object.values(fieldErrors)[0]?.[0];
-      message = first ?? "Please correct the highlighted fields.";
+      message = Object.values(fieldErrors)[0]?.[0] ?? allMessages[0] ?? "Please correct the highlighted fields.";
     } else {
       message = data.message ?? data.title ?? message;
     }

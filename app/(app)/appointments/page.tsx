@@ -11,6 +11,7 @@ const emptyForm = {
   doctorId: 0,
   scheduledAt: "",
   reason: "",
+  status: "Scheduled" as AppointmentStatus,
 };
 
 export default function AppointmentsPage() {
@@ -67,6 +68,7 @@ export default function AppointmentsPage() {
       doctorId: a.doctorId ?? 0,
       scheduledAt: a.scheduledAt.slice(0, 16),
       reason: a.reason ?? "",
+      status: a.status,
     });
     setErrors({});
     setFormError(null);
@@ -86,7 +88,7 @@ export default function AppointmentsPage() {
         doctorName: doctor?.name ?? "",
         scheduledAt: new Date(form.scheduledAt).toISOString(),
         reason: form.reason,
-        status: "Scheduled" as AppointmentStatus,
+        status: form.status,
       };
       if (editId) await apiFetch(`/api/appointments/${editId}`, { method: "PUT", body: payload });
       else await apiFetch("/api/appointments", { method: "POST", body: payload });
