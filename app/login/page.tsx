@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
+import { useAuth, homePathForRole } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
+import { inputClass } from "@/components/ui";
 
 const demoAccounts = [
   { label: "Admin", email: "admin@ehr.com", password: "Admin@123" },
   { label: "Doctor", email: "doctor@ehr.com", password: "Doctor@123" },
   { label: "Receptionist", email: "reception@ehr.com", password: "Reception@123" },
+  { label: "Patient", email: "patient@ehr.com", password: "Patient@123" },
 ];
 
 export default function LoginPage() {
@@ -16,18 +19,25 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("admin@ehr.com");
   const [password, setPassword] = useState("Admin@123");
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrors({});
     setLoading(true);
     try {
-      await login(email, password);
-      router.push("/dashboard");
+      const user = await login(email, password);
+      router.push(homePathForRole(user.role));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      if (err instanceof ApiError) {
+        setErrors(err.fieldErrors);
+        setError(Object.keys(err.fieldErrors).length ? null : err.message);
+      } else {
+        setError("Login failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -45,21 +55,19 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">
-            {error}
-          </div>
+          <div className="mb-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+              className={inputClass(!!errors.email)}
             />
+            {errors.email && <span className="mt-1 block text-xs font-medium text-red-600">{errors.email[0]}</span>}
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
@@ -67,9 +75,9 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-200"
+              className={inputClass(!!errors.password)}
             />
+            {errors.password && <span className="mt-1 block text-xs font-medium text-red-600">{errors.password[0]}</span>}
           </div>
           <button
             type="submit"
@@ -84,7 +92,7 @@ export default function LoginPage() {
           <p className="mb-2 text-center text-xs font-medium uppercase tracking-wide text-slate-400">
             Demo accounts
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {demoAccounts.map((a) => (
               <button
                 key={a.email}
@@ -92,6 +100,8 @@ export default function LoginPage() {
                 onClick={() => {
                   setEmail(a.email);
                   setPassword(a.password);
+                  setErrors({});
+                  setError(null);
                 }}
                 className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-teal-400 hover:text-teal-700"
               >

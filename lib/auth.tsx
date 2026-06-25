@@ -3,18 +3,23 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch, setToken, clearToken, getToken } from "./api";
-import type { AuthResponse, UserInfo } from "./types";
+import type { AuthResponse, UserInfo, Role } from "./types";
 
 interface AuthContextValue {
   user: UserInfo | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserInfo>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const USER_KEY = "ehr_user";
+
+/** Where each role lands after login. */
+export function homePathForRole(role: Role): string {
+  return role === "Patient" ? "/portal" : "/dashboard";
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
@@ -30,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string): Promise<UserInfo> {
     const res = await apiFetch<AuthResponse>("/api/auth/login", {
       method: "POST",
       body: { email, password },
@@ -39,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(res.token);
     localStorage.setItem(USER_KEY, JSON.stringify(res.user));
     setUser(res.user);
+    return res.user;
   }
 
   function logout() {

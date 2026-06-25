@@ -8,13 +8,16 @@ The web client for a Healthcare **Electronic Health Record (EHR)** system, built
 
 ## ✨ Features
 
-- 🔐 **JWT login** with three demo roles (Admin / Doctor / Receptionist)
-- 📊 **Dashboard** with live stats and upcoming appointments
-- 👥 **Patients** — searchable list, create/edit, patient detail page
-- 📋 **Medical records** — per-patient clinical history (Doctor/Admin can add)
-- 📅 **Appointments** — schedule, update status, cancel
-- 🎨 Clean, responsive UI with role-aware actions
-- Protected routes (client-side guard) that redirect unauthenticated users to `/login`
+- 🔐 **JWT login** with four roles — each lands on a **different experience**
+- 🩺 **Staff workspace** (Admin / Doctor / Receptionist):
+  - Role-aware **dashboard** (clinic stats vs. a doctor's patient queue)
+  - **Patients** — register, edit, search, and a tabbed profile (history, prescriptions, invoices)
+  - **Consultations** — doctors record symptoms, diagnosis, treatment notes & prescriptions
+  - **Appointments** — book, assign doctor, check-in, complete, reschedule, cancel
+  - **Billing** — create invoices with line items, record payments, download PDFs
+- 👤 **Patient Portal** — dashboard, my appointments (cancel/reschedule), medical records, prescriptions, and invoices (PDF download)
+- ✅ **Inline form validation** — server validation errors are shown per-field with red highlighting
+- 🎨 Clean, responsive UI; protected routes redirect by role
 
 ---
 
@@ -25,8 +28,8 @@ The web client for a Healthcare **Electronic Health Record (EHR)** system, built
 | Framework | Next.js (App Router)            |
 | Language  | TypeScript                      |
 | Styling   | Tailwind CSS                    |
-| Auth      | JWT stored in `localStorage` + React Context |
-| Data      | `fetch` wrapper (`lib/api.ts`)  |
+| Auth      | JWT in `localStorage` + React Context |
+| Data      | `fetch` wrapper (`lib/api.ts`) with field-error parsing |
 
 ---
 
@@ -34,51 +37,35 @@ The web client for a Healthcare **Electronic Health Record (EHR)** system, built
 
 ### Prerequisites
 - [Node.js 20.9+](https://nodejs.org)
-- The [backend API](#) running locally (default `http://localhost:5080`)
+- The backend API running locally (default `http://localhost:5080`)
 
 ### Steps
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env.local   # then edit if your API runs elsewhere
+cp .env.example .env.local   # adjust if your API runs elsewhere
 npm run dev
 ```
 
 Open **http://localhost:3000** and sign in with a demo account:
 
-| Role         | Email               | Password        |
-| ------------ | ------------------- | --------------- |
-| Admin        | `admin@ehr.com`     | `Admin@123`     |
-| Doctor       | `doctor@ehr.com`    | `Doctor@123`    |
-| Receptionist | `reception@ehr.com` | `Reception@123` |
+| Role         | Email               | Password        | Lands on |
+| ------------ | ------------------- | --------------- | -------- |
+| Admin        | `admin@ehr.com`     | `Admin@123`     | Staff dashboard |
+| Doctor       | `doctor@ehr.com`    | `Doctor@123`    | Doctor dashboard |
+| Receptionist | `reception@ehr.com` | `Reception@123` | Staff dashboard |
+| Patient      | `patient@ehr.com`   | `Patient@123`   | Patient portal |
 
-> The login page also has one-click buttons that fill these credentials for you.
+> The login page has one-click buttons that fill these credentials.
 
 ---
 
 ## ⚙️ Environment Variables
 
-| Variable              | Description                          | Example                          |
-| --------------------- | ------------------------------------ | -------------------------------- |
-| `NEXT_PUBLIC_API_URL` | Base URL of the .NET EHR API         | `http://localhost:5080`          |
-
-In production, set this to your deployed backend URL (e.g. `https://ehr-api.onrender.com`).
-
----
-
-## ☁️ Deploying to Vercel
-
-1. Push this repo to GitHub.
-2. Go to [vercel.com](https://vercel.com) → **Add New… → Project** → import the repo.
-   Vercel auto-detects Next.js — no build settings needed.
-3. Under **Environment Variables**, add:
-   - `NEXT_PUBLIC_API_URL` = `https://<your-backend>.onrender.com`
-4. Click **Deploy**.
-5. Copy your Vercel URL (e.g. `https://ehr-system.vercel.app`) and add it to the backend's
-   `Cors__AllowedOrigins__0` setting, then redeploy the backend so the browser is allowed to call it.
-
-> ⚠️ Because `NEXT_PUBLIC_API_URL` is baked in at build time, **redeploy** the frontend after changing it.
+| Variable              | Description                  | Example                  |
+| --------------------- | ---------------------------- | ------------------------ |
+| `NEXT_PUBLIC_API_URL` | Base URL of the .NET EHR API | `http://localhost:5080`  |
 
 ---
 
@@ -87,15 +74,19 @@ In production, set this to your deployed backend URL (e.g. `https://ehr-api.onre
 ```
 frontend/
 ├── app/
-│   ├── login/page.tsx        # Login screen
-│   ├── (app)/                # Authenticated route group
-│   │   ├── layout.tsx        # Sidebar + topbar + auth guard
-│   │   ├── dashboard/        # Stats overview
-│   │   ├── patients/         # List, create/edit, [id] detail
-│   │   └── appointments/     # Schedule & manage
-│   └── layout.tsx            # Root layout + AuthProvider
-├── components/               # Sidebar, Topbar, Modal, UI helpers
-└── lib/                      # api.ts (fetch + JWT), auth.tsx (context), types.ts
+│   ├── login/                # Login screen (role-based redirect)
+│   ├── (app)/                # Staff workspace (guarded)
+│   │   ├── dashboard/        # Role-aware overview
+│   │   ├── patients/         # List + [id] tabbed profile (+ record consultation)
+│   │   ├── appointments/     # Book / assign / status / reschedule
+│   │   └── billing/          # Invoices, payments, PDF
+│   └── (portal)/portal/      # Patient portal (guarded)
+│       ├── appointments/     # My appointments
+│       ├── records/          # My medical records
+│       ├── prescriptions/    # My prescriptions
+│       └── invoices/         # My invoices (PDF download)
+├── components/               # Sidebar, Topbar, Modal, UI kit
+└── lib/                      # api.ts, auth.tsx, types.ts
 ```
 
 ---
@@ -103,6 +94,8 @@ frontend/
 ## 🧭 Notes
 
 - Auth state is held in React Context and persisted to `localStorage`. A 401 from the API
-  automatically clears the token and bounces the user back to `/login`.
-- This is a portfolio demo — the JWT lives in `localStorage` for simplicity. For a production
-  app you'd typically use httpOnly cookies.
+  clears the token and redirects to `/login`.
+- Server-side validation errors (ASP.NET Core `ValidationProblemDetails`) are parsed in
+  `lib/api.ts` and surfaced under the relevant field.
+- This is a portfolio demo — the JWT lives in `localStorage` for simplicity; a production app
+  would typically use httpOnly cookies.
