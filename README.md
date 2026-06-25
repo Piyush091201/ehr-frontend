@@ -2,7 +2,7 @@
 
 The web client for a Healthcare **Electronic Health Record (EHR)** system, built with **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**. It talks to a separate **.NET 8 Web API** using JWT authentication.
 
-> 🔗 **Backend repo:** _add your backend GitHub URL here_
+> 🔗 **Backend repo**
 
 ---
 
